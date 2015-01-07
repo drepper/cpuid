@@ -1,2 +1,2 @@
 # cpuid
-x86 CPUID CLI decoding
+CLI x86 CPUID decoding
