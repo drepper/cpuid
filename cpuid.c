@@ -448,6 +448,8 @@ handler_0x06(void)
 }
 
 
+static unsigned ebx_7;
+
 static void
 handler_0x07(void)
 {
@@ -465,30 +467,64 @@ handler_0x07(void)
         { 1u << n, #s }
 	F(0, FSGSBASE),
 	F(1, TSC_ADJUST),
+        F(2, SGX),
 	F(3, BMI1),
 	F(4, HLE),
 	F(5, AVX2),
+        F(6, FDP_EXCPTN_ONLY),
 	F(7, SMEP),
 	F(8, BMI2),
 	F(9, ERMS),
 	F(10, INVPCID),
 	F(11, RTM),
-	F(12, QM),
+	F(12, RDTM),
 	F(13, DFDC),
 	F(14, MPX),
+        F(15, RDTA),
 	F(16, AVX512F),
+	F(17, AVX512DQ),
 	F(18, RDSEED),
 	F(19, ADX),
 	F(20, SMAP),
+        F(21, AVX512_IFMA),
+        F(23, CLFLUSHOPT),
+        F(24, CLWB),
 	F(25, Trace),
 	F(26, AVX512PF),
 	F(27, AVX512ER),
 	F(28, AVX512CD),
 	F(29, SHA),
+        F(30, AVX512BW),
+        F(31, AVX512VL),
       };
-#undef F
+      ebx_7 = ebx;
       print_mask("ebx", ebx, features_ebx,
 		 NARRAY(features_ebx));
+      static const bit_name_map features_ecx[] = {
+        F(0, PREFETCHWT1),
+        F(1, AVX512_VBMI),
+        F(2, UMIP),
+        F(3, PKU),
+        F(4, OSPKE),
+        F(14, AVX512_VPOPCNTDQ),
+        F(22, RDPID),
+        F(30, SGX_LC),
+      };
+      print_mask("ecx", ecx, features_ecx,
+		 NARRAY(features_ecx));
+      printf("  NAWAU=%u\n", (ecx & 0b1111100000000000000000) >> 17);
+      static const bit_name_map features_edx[] = {
+        F(2, AVX512_4VNNIW),
+        F(3, AVX512_4FMAPS),
+        F(26, IBRS),
+        F(27, STIBP),
+        F(28, L1D_FLUSH),
+        F(29, IA32_ARCH_CAPABILITIES),
+        F(31, SSBD)
+      };
+      print_mask("edx", edx, features_edx,
+		 NARRAY(features_edx));
+#undef F
       break;
     default:
       printf("unknown subleaf %u\n", n);
@@ -654,6 +690,83 @@ handler_0x0f(void)
 
 
 static void
+handler_0x10(void)
+{
+  unsigned eax, ebx, ecx, edx;
+  unsigned avail;
+  __cpuid_count(0x10, 0, eax, avail, ecx, edx);
+  printf("eax = %08x (", eax);
+  printf("ebx = %08x (", avail);
+  bool first = true;
+  if (avail & 2) {
+    printf("L3 Cache Allocation");
+    first = false;
+  }
+  if (avail & 4) {
+    if (! first)
+      printf(", ");
+    printf("L2 Cache Allocation");
+    first = false;
+  }
+  if (avail & 8) {
+    if (! first)
+      printf(", ");
+    printf("Memory Bandwidth Allocation");
+    first = false;
+  }
+  printf(")\n");
+  printf("ecx = %08x (", ecx);
+  printf("edx = %08x (", edx);
+  for (unsigned i = 1; i <= 3; ++i)
+    if (avail & (1 << i)) {
+      printf("subleaf %u:\n", i);
+      __cpuid_count(0x10, i, eax, avail, ecx, edx);
+      if (i == 3)
+        printf("eax = %08x (maximum MBA throttling=%u)\n", eax, (eax & 0b11111111111) + 1);
+      else
+        printf("eax = %08x (len capability mask=%u)\n", eax, (eax & 0b11111) + 1);
+      printf("ebx = %08x\n", ebx);
+      if (i == 3)
+        printf("ecx = %08x (%s)\n", ecx, (ecx & 4) ? "delay value linear" : "");
+      else
+        printf("ecx = %08x (%s)\n", ecx, (ecx & 4) ? "code&data prioritization" : "");
+      printf("edx = %08x (highest COS=%u)\n", edx, edx & 0xffff);
+    }
+}
+
+
+static void
+handler_0x12(void)
+{
+  if ((ebx_7 & 4) == 0)
+    return;
+  unsigned eax, ebx, ecx, edx;
+  __cpuid_count(0x12, 0, eax, ebx, ecx, edx);
+  static const bit_name_map features_eax_0[] = {
+#define F(n, s) \
+    { 1u << n, #s }
+    F(0, SGX1),
+    F(1, SGX2),
+    F(5, ENCLV),
+    F(6, ENCLS),
+  };
+  print_mask("eax", eax, features_eax_0, NARRAY(features_eax_0));
+  printf("ebx = %08x (MISCSELECT)\n", ebx);
+  printf("ecx = %08x\n", ecx);
+  printf("edx = %08x (MaxEnclSizeNot64=%llu MaxEnclSize64=%llu\n", edx, 1llu<<(edx & 0xff), 1llu<<((edx >> 8) & 0xff));
+
+  printf("subleaf 1:\n");
+  __cpuid_count(0x12, 1, eax, ebx, ecx, edx);
+  printf("eax = %08x (SEC.ATTRIBUTES[31:0])\n", eax);
+  printf("ebx = %08x (SEC.ATTRIBUTES[63:32])\n", eax);
+  printf("ecx = %08x (SEC.ATTRIBUTES[95:64])\n", eax);
+  printf("edx = %08x (SEC.ATTRIBUTES[127:96])\n", eax);
+
+  printf("******************* decoding of subleaf 2 and later missing\n");
+}
+
+
+static void
 handler_0x14(void)
 {
   unsigned eax, ebx, ecx, edx;
@@ -699,9 +812,9 @@ static struct {
   { handler_0x0d, "Processor Extended State Enumeration Main" },
   { NULL, NULL },
   { handler_0x0f, "Quality of Service Resource Type Enumeration" },
+  { handler_0x10, "Intel Resource Director Technology (Intel RDT) Allocation Enumeration" },
   { NULL, NULL },
-  { NULL, NULL },
-  { NULL, NULL },
+  { handler_0x12, "Intel SGX Enumeration" },
   { NULL, NULL },
   { handler_0x14, "Intel Processor Trace Enumeration Main" },
 };
@@ -1129,13 +1242,10 @@ main()
     unsigned eax, ebx, ecx, edx;
     __cpuid_count(i, 0, eax, ebx, ecx, edx);
     if (eax != 0 || ebx != 0 || ecx != 0 || edx != 0) {
-      if (i < NARRAY(leaves)) {
-        if (leaves[i].handler) {
-          printf("\nLeaf %u: %s\n", i, leaves[i].name);
-          leaves[i].handler();
-        } else
-          printf("\n*** leaf %u not handled\n", i);
-      } else if (i >= NARRAY(leaves))
+      if (i < NARRAY(leaves) && leaves[i].handler) {
+        printf("\nLeaf %u: %s\n", i, leaves[i].name);
+        leaves[i].handler();
+      } else
         printf("\n*** leaf %u not handled\n", i);
     }
   }
