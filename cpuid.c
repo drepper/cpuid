@@ -770,7 +770,7 @@ static void
 handler_0x14(void)
 {
   unsigned eax, ebx, ecx, edx;
-  __cpuid_count(0xf, 0, eax, ebx, ecx, edx);
+  __cpuid_count(0x14, 0, eax, ebx, ecx, edx);
   printf("eax = %08x (max leaf=%u)\n", eax, eax);
   static const bit_name_map features_ebx[] = {
 #define F(n, s) \
@@ -788,6 +788,30 @@ handler_0x14(void)
   };
 #undef F
   print_mask("ecx", ecx, features_ecx, NARRAY(features_ecx));
+}
+
+
+static void
+handler_0x15(void)
+{
+  unsigned eax, ebx, ecx, edx;
+  __cpuid(0x15, eax, ebx, ecx, edx);
+  printf("eax = %08x (denominator TSC/core crystal clock=%u)\n", eax, eax);
+  printf("ebx = %08x (enumerator TSC/core crystal clock=%u)\n", ebx, ebx);
+  printf("ecx = %08x (core crystal clock=%u Hz)\n", ecx, ecx);
+  printf("edx = %08x\n", edx);
+}
+
+
+static void
+handler_0x16(void)
+{
+  unsigned eax, ebx, ecx, edx;
+  __cpuid(0x16, eax, ebx, ecx, edx);
+  printf("eax = %08x (Base Frequency=%u MHz)\n", eax, eax & 0xffff);
+  printf("ebx = %08x (Max Frequency=%u MHz)\n", ebx, ebx & 0xffff);
+  printf("ecx = %08x (Bus (Reference) Frequency=%u MHz)\n", ecx, ecx & 0xffff);
+  printf("edx = %08x\n", edx);
 }
 
 
@@ -817,6 +841,8 @@ static struct {
   { handler_0x12, "Intel SGX Enumeration" },
   { NULL, NULL },
   { handler_0x14, "Intel Processor Trace Enumeration Main" },
+  { handler_0x15, "Time Stamp Counter and Nominal Core Crystal Clock Information" },
+  { handler_0x16, "Processor Frequency Information" },
 };
 
 
