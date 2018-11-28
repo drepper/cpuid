@@ -675,7 +675,7 @@ handler_0x0f(void)
 #undef F
   print_mask("edx", edx, features_edx_0, NARRAY(features_edx_0));
 
-  printf("Leaf 15: L3 Cache QoS Capability Enumeration\n");
+  printf("subleaf 1: L3 Cache QoS Capability Enumeration\n");
   __cpuid_count(0xf, 1, eax, ebx, ecx, edx);
   printf("ebx = %08x (convfactor=%u)\n", ebx, ebx);
   printf("ecx = %08x (range RMID=%u)\n", ecx, ecx);
@@ -720,7 +720,7 @@ handler_0x10(void)
   for (unsigned i = 1; i <= 3; ++i)
     if (avail & (1 << i)) {
       printf("subleaf %u:\n", i);
-      __cpuid_count(0x10, i, eax, avail, ecx, edx);
+      __cpuid_count(0x10, i, eax, ebx, ecx, edx);
       if (i == 3)
         printf("eax = %08x (maximum MBA throttling=%u)\n", eax, (eax & 0b11111111111) + 1);
       else
