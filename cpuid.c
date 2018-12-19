@@ -700,49 +700,54 @@ handler_0x0f(void)
   print_mask("edx", edx, features_edx_1, NARRAY(features_edx_1));
 }
 
+static const char* name_0x10_leafs[] = {
+  "???",
+  "L3 Cache Allocation",
+  "L2 Cache Allocation",
+  "Memory Bandwidth Allocation"
+};
+#define nname_0x10_leafs (sizeof(name_0x10_leafs) / sizeof(name_0x10_leafs[0]))
 
 static void
 handler_0x10(void)
 {
   unsigned eax, ebx, ecx, edx;
-  unsigned avail;
-  __cpuid_count(0x10, 0, eax, avail, ecx, edx);
+  __cpuid_count(0x10, 0, eax, ebx, ecx, edx);
+  unsigned avail = ebx;
   printf("eax = %08x\n", eax);
   printf("ebx = %08x (", avail);
   bool first = true;
-  if (avail & 2) {
-    printf("L3 Cache Allocation");
-    first = false;
-  }
-  if (avail & 4) {
-    if (! first)
-      printf(", ");
-    printf("L2 Cache Allocation");
-    first = false;
-  }
-  if (avail & 8) {
-    if (! first)
-      printf(", ");
-    printf("Memory Bandwidth Allocation");
-    first = false;
-  }
+  for (size_t i = 0; i < nname_0x10_leafs && avail != 0; ++i)
+    if (ebx & (1u << i)) {
+      if (! first)
+        printf(", ");
+      printf("%s", name_0x10_leafs[i]);
+      first = false;
+    }
   printf(")\n");
   printf("ecx = %08x\n", ecx);
   printf("edx = %08x\n", edx);
   for (unsigned i = 1; i <= 3; ++i)
     if (avail & (1 << i)) {
-      printf("subleaf %u:\n", i);
+      printf("subleaf %u: %s\n", i, name_0x10_leafs[i]);
       __cpuid_count(0x10, i, eax, ebx, ecx, edx);
       if (i == 3)
         printf("eax = %08x (maximum MBA throttling=%u)\n", eax, (eax & 0b11111111111) + 1);
-      else
+      else if (i == 1 || i == 2)
         printf("eax = %08x (len capability mask=%u)\n", eax, (eax & 0b11111) + 1);
+      else
+        printf("eax = %08x\n", eax);
       printf("ebx = %08x\n", ebx);
       if (i == 3)
         printf("ecx = %08x (%s)\n", ecx, (ecx & 4) ? "delay value linear" : "");
-      else
+      else if (i == 1 || i == 2)
         printf("ecx = %08x (%s)\n", ecx, (ecx & 4) ? "code&data prioritization" : "");
-      printf("edx = %08x (highest COS=%u)\n", edx, edx & 0xffff);
+      else
+        printf("ecx = %08x\n", ecx);
+      if (i >= 1 && i <= 3)
+        printf("edx = %08x (highest COS=%u)\n", edx, edx & 0xffff);
+      else
+        printf("edx = %08x\n", edx);
     }
 }
 
