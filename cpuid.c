@@ -695,7 +695,7 @@ handler_0x10(void)
   unsigned eax, ebx, ecx, edx;
   unsigned avail;
   __cpuid_count(0x10, 0, eax, avail, ecx, edx);
-  printf("eax = %08x (", eax);
+  printf("eax = %08x\n", eax);
   printf("ebx = %08x (", avail);
   bool first = true;
   if (avail & 2) {
@@ -715,8 +715,8 @@ handler_0x10(void)
     first = false;
   }
   printf(")\n");
-  printf("ecx = %08x (", ecx);
-  printf("edx = %08x (", edx);
+  printf("ecx = %08x\n", ecx);
+  printf("edx = %08x\n", edx);
   for (unsigned i = 1; i <= 3; ++i)
     if (avail & (1 << i)) {
       printf("subleaf %u:\n", i);
