@@ -2,7 +2,7 @@
 
 VERSION := $(shell sed -n 's/Version:[[:space:]]*\(.*\)/\1/p' cpuid.spec)
 prefix = /usr
-bindir = $(PREFIX)/bin
+bindir = $(prefix)/bin
 
 CC = gcc -std=gnu99
 CFLAGS = $(OPT) $(DEBUG) $(WARN)

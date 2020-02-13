@@ -1,5 +1,5 @@
 Name:		cpuid
-Version:	1.0
+Version:	1.1
 Release:	1%{?dist}
 Summary:	CLI interface to read CPUID information
 
@@ -19,6 +19,7 @@ make %{?_smp_mflags}
 
 
 %install
+rm -rf ${RPM_BUILD_ROOT}
 %make_install
 
 
@@ -28,5 +29,7 @@ make %{?_smp_mflags}
 
 
 %changelog
+* Thu Feb 13 2020 Ulrich Drepper <drepper@gmail.com> - 1.1-1
+- Add support for recent extensions
 * Sat Feb 9 2019 Ulrich Drepper <drepper@gmail.com> - 1.0-1
 - First version with spec file
